@@ -7,4 +7,3 @@ pub trait MessageBasedCommand: Sync + Send {
     async fn run(&self, ctx: &Context, msg: &Message, common: &Common);
     fn able_to_register(&self) -> bool;
 }
-

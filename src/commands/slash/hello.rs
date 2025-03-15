@@ -1,6 +1,6 @@
 use serenity::all::{CommandOptionType, Context, CreateCommand, CreateCommandOption, Interaction, ResolvedOption, ResolvedValue};
 use serenity::async_trait;
-use super::super::{SlashCommand, util::slash::ScCommon};
+use super::super::{util::{slash::{ScCommon, SlashCommand}, CommandError}};
 
 // CreateCommand::new("attachmentinput")
 // .description("Test command for attachment input")
@@ -11,15 +11,15 @@ use super::super::{SlashCommand, util::slash::ScCommon};
 pub struct Hello {}
 #[async_trait]
 impl SlashCommand for Hello {
-    async fn run(&self, _ctx: &Context, _interaction: &Interaction, common: &ScCommon) -> Result<Option<String>, String> {
+    async fn run(&self, _ctx: &Context, _interaction: &Interaction, common: &ScCommon) -> Option<Result<String, CommandError>> {
         let command = &common.command;
         if let Some(ResolvedOption {
             value: ResolvedValue::String(name), ..
         }) = command.data.options().first()
         {
-            return Ok(Some(format!("Hi {name}").to_owned()));
+            return Some(Ok(format!("Hi, {name}!").to_owned()));
         } else {
-            return Ok(Some("Hi".to_owned()));
+            return Some(Ok("Hi!".to_owned()));
         }
     }
     

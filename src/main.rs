@@ -1,15 +1,17 @@
 mod commands;
 mod settings;
+use commands::util::CommandError;
 use commands::util::{Common, slash::ScCommon, slash::SlashCommand};
 use commands::MESSAGE_BASED_COMMANDS;
 use commands::SLASH_COMMANDS;
 use std::sync::Arc;
-use serenity::all::{Command, Interaction, CreateInteractionResponseMessage, CreateInteractionResponse};
+use serenity::all::{ActivityData, Command, CreateInteractionResponse, CreateInteractionResponseMessage, Interaction, OnlineStatus};
 use serenity::async_trait;
 use serenity::model::{channel::Message, gateway::Ready};
 use serenity::prelude::*;
 use shuttle_runtime::{SecretStore, Error as shuttle_error};
 use tracing::{warn, info};
+use reqwest::Client as HttpClient;
 
 struct Bot<'a> {
     common: Common,
@@ -21,27 +23,33 @@ impl <'a> EventHandler for Bot <'static> {
     async fn interaction_create(&self, ctx: Context, interaction: Interaction) {
         if let Interaction::Command(ref command) = interaction {
             let name = command.data.name.as_str();
-            let mut msg:Result<Option<String>, String> = Err("Command dosent found".to_string());
+            let mut msg:Option<Result<String, CommandError>> = Some(Err(CommandError::Default("Command dosent found".to_string())));
             let command_map = self.slash_commands.lock().await;
             let commands = command_map;
             for (info, command_proc) in commands.iter() {
                     if name != info.name {
                         continue
                     }
-                    msg = command_proc.run(&ctx, &interaction, &ScCommon {command:command.clone()}).await;
+                    msg = command_proc.run(&ctx, &interaction, &ScCommon {
+                        command:command.clone(), http_client:self.common.http_client.clone()
+                    }).await;
                     break;
             }
 
 
-            if let Err(content) = msg {
+            if let Some(Err(err)) = msg {
                 let data = CreateInteractionResponseMessage::new().content(
-                    format!("Error running command:\n\n{content}")
+                    // the help command is still wip
+                    // if err == CommandError::Argument {
+                    //     return format!("Error: {:?}\n\n-# see help using", )
+                    // }
+                    format!("Error:\n\n{:?}", err)
                 );
                 let builder = CreateInteractionResponse::Message(data);
                 if let Err(why) = command.create_response(&ctx.http, builder).await {
                     info!("Cannot respond to slash command: {why}");
                 }
-            } else if let Ok(Some(content)) = msg {
+            } else if let Some(Ok(content)) = msg {
                 let data = CreateInteractionResponseMessage::new().content(content);
                 let builder = CreateInteractionResponse::Message(data);
                 if let Err(why) = command.create_response(&ctx.http, builder).await {
@@ -80,27 +88,30 @@ impl <'a> EventHandler for Bot <'static> {
     async fn ready(&self, ctx: Context, ready: Ready) {
         info!("Connected as {}", ready.user.name);
         let mut command_map: Vec<(Command, &Box<dyn SlashCommand>)> = vec![];
-    
-    // Register all commands and store their mapping
-    for (_, command_opt) in SLASH_COMMANDS.iter().enumerate() {
-        if let Some(command) = command_opt {
-            let gc_raw = Command::create_global_command(
-                &ctx.http, 
-                command.register()
-            ).await;
-            
-            if let Ok(gc) = gc_raw {
-                // Store the mapping from command name to (Command, index)
-                command_map.push((gc, command));
-            } else if let Err(err) = gc_raw {
-                warn!("Error adding command {}", err.to_string());
+        let activity = ActivityData::playing("with yo mama");
+        let status = OnlineStatus::Online;
+
+        ctx.set_presence(Some(activity), status);
+        // Register all commands and store their mapping
+        for (_, command_opt) in SLASH_COMMANDS.iter().enumerate() {
+            if let Some(command) = command_opt {
+                let gc_raw = Command::create_global_command(
+                    &ctx.http, 
+                    command.register()
+                ).await;
+                
+                if let Ok(gc) = gc_raw {
+                    // Store the mapping from command name to (Command, index)
+                    command_map.push((gc, command));
+                } else if let Err(err) = gc_raw {
+                    warn!("Error adding command {}", err.to_string());
+                }
             }
         }
-    }
-    
-    // Update the command map using the mutex
-    let mut map = self.slash_commands.lock().await;
-    *map = command_map;
+        
+        // Update the command map using the mutex
+        let mut map = self.slash_commands.lock().await;
+        *map = command_map;
     }
 }
 
@@ -126,12 +137,15 @@ async fn serenity(
     }
     let client = Client::builder(&token, intents)
         .event_handler(Bot {
-            common: Common {},
+            common: Common {http_client:HttpClient::new()},
             slash_commands: Arc::new(Mutex::new(vec![]))
         })
-        .await
-        .expect("Error creating client");
+        .await;
 
-    Ok(client.into())
+    if client.is_err() {
+        return Err(shuttle_error::BuildPanic("Failed to make Serenity client".to_owned()));
+    }
+
+    Ok(client.unwrap().into())
 }
 
