@@ -25,7 +25,7 @@ impl SlashCommand for Ask {
             }
             let text = text_raw.unwrap();
             if text.len()>=2000 {
-                return Some(Err(CommandError::Default("The answer was too large. try asking another question")))
+                return Some(Err(CommandError::Default("The answer was too large. try asking another question".to_owned())))
             }
             return Some(Ok(text));
         } else {
