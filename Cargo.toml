@@ -1,0 +1,12 @@
+[package]
+name = "assistbot-ng"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+anyhow = "1.0.97"
+rquickjs = "0.9.0"
+serenity = "0.12.4"
+shuttle-runtime = "0.53.0"
+shuttle-serenity = "0.53.0"
+tracing = "0.1.41"
