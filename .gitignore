@@ -1,4 +1,4 @@
-/target
+**/target
 Secrets.toml
 .shuttle*
 Secrets*.toml

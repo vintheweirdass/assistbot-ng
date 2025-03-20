@@ -1,5 +1,7 @@
 mod commands;
 mod settings;
+use cmd_args_ext::CommandArgsExt;
+use commands::util::slash::CirmResult;
 use commands::util::CommandError;
 use commands::util::{Common, slash::ScCommon, slash::SlashCommand};
 use commands::MESSAGE_BASED_COMMANDS;
@@ -23,7 +25,7 @@ impl <'a> EventHandler for Bot <'static> {
     async fn interaction_create(&self, ctx: Context, interaction: Interaction) {
         if let Interaction::Command(ref command) = interaction {
             let name = command.data.name.as_str();
-            let mut msg:Option<Result<String, CommandError>> = Some(Err(CommandError::Default("Command dosent found".to_string())));
+            let mut msg:CirmResult = Some(Err(CommandError::Default("Command dosent found".to_string())));
             let command_map = self.slash_commands.lock().await;
             let commands = command_map;
             for (info, command_proc) in commands.iter() {
@@ -50,8 +52,7 @@ impl <'a> EventHandler for Bot <'static> {
                     info!("Cannot respond to slash command: {why}");
                 }
             } else if let Some(Ok(content)) = msg {
-                let data = CreateInteractionResponseMessage::new().content(content);
-                let builder = CreateInteractionResponse::Message(data);
+                let builder = CreateInteractionResponse::Message(content);
                 if let Err(why) = command.create_response(&ctx.http, builder).await {
                     info!("Cannot respond to slash command: {why}");
                 }
@@ -88,10 +89,10 @@ impl <'a> EventHandler for Bot <'static> {
     async fn ready(&self, ctx: Context, ready: Ready) {
         info!("Connected as {}", ready.user.name);
         let mut command_map: Vec<(Command, &Box<dyn SlashCommand>)> = vec![];
-        let activity = ActivityData::playing("with yo mama");
-        let status = OnlineStatus::Online;
+        let activity = &*settings::SET_ACTIVITY_DATA_WHEN_CONNECTED;
+        let status = settings::SET_ONLINE_STATUS_WHEN_CONNECTED;
 
-        ctx.set_presence(Some(activity), status);
+        ctx.set_presence(Some(activity.clone()), status);
         // Register all commands and store their mapping
         for (_, command_opt) in SLASH_COMMANDS.iter().enumerate() {
             if let Some(command) = command_opt {

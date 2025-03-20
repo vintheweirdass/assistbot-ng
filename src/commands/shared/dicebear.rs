@@ -1,0 +1,36 @@
+use cmd_args::EnumArgs;
+use cmd_args_ext;
+
+#[derive(EnumArgs)]
+pub enum StyleVariations {
+    #[alias("adventurer")] Adventurer,
+    #[alias("adventurer-neutral")] AdventurerNeutral,
+    #[alias("avataaars")] Avataaars,
+    #[alias("avataars-neutral")] AvataaarsNeutral,
+    #[alias("big-ears")] BigEars,
+    #[alias("big-ears-neutral")] BigEarsNeutral,
+    #[alias("big-smile")] BigSmile,
+    #[alias("bottts")] Bottts,
+    #[alias("bottts-neutral")] BotttsNeutral,
+    #[alias("croodles")] Croodles,
+    #[alias("croodles-neutral")] CroodlesNeutral,
+    #[alias("dylan")] Dylan,
+    #[alias("fun-emoji")] FunEmoji,
+    #[alias("glass")] Glass,
+    #[alias("icons")] Icons,
+    #[alias("identcion")] Identicon,
+    #[alias("initials")] Initials,
+    #[alias("lorelei")] Lorelei,
+    #[alias("lorelei-neutral")] LoreleiNeutral,
+    #[alias("micah")] Micah,
+    #[alias("miniavs")] Miniavs,
+    #[alias("notionists")] Notionists,
+    #[alias("notionists-neutral")] NotionistsNeutral,
+    #[alias("open-peeps")] OpenPeeps,
+    #[alias("personas")] Personas,
+    #[alias("pixel-art")] PixelArt,
+    #[alias("pixel-art-neutral")] PixelArtNeutral,
+    #[alias("rings")] Rings,
+    #[alias("shapes")] Shapes,
+    #[alias("thunbs")] Thumbs,
+}

@@ -1,5 +1,7 @@
 
-use serenity::all::{Color, GatewayIntents};
+use std::sync::LazyLock;
+
+use serenity::all::{ActivityData, Color, GatewayIntents, OnlineStatus};
 
 // your bot permission. it woould be dynamically managed under this variable
 // btw, you need to add GUILD_MESSAGES if you enable message based commands
@@ -18,3 +20,8 @@ pub const ONLY_ALLOW_MESSAGE_BASED_COMMANDS_ON_CHANNELS: [&str; 1] = ["134865732
 
 // set accent color for embed
 pub const ACCENT_COLOR:Color = Color::ORANGE;
+
+pub const SET_ONLINE_STATUS_WHEN_CONNECTED:OnlineStatus = OnlineStatus::Online;
+pub static SET_ACTIVITY_DATA_WHEN_CONNECTED:LazyLock<ActivityData> = LazyLock::new(
+    ||ActivityData::playing("with yo mama")
+);

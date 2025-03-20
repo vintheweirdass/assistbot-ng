@@ -1,0 +1,11 @@
+[package]
+name = "cmd-args-ext"
+version = "0.1.0"
+edition = "2021"
+
+
+[lib]
+
+[dependencies]
+serenity = "0.12.4"
+cmd-args = {path = "../cmd-args"}

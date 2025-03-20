@@ -21,6 +21,7 @@ impl MessageBasedCommand for Run {
         // Implement your command logic here
         // For now, just a placeholder
         let _ = msg.reply(&ctx.http, "## still on maintenance").await;
+        
         return;
     }
 }

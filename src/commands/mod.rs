@@ -1,9 +1,9 @@
 pub mod util;
-use util::{message::MessageBasedCommand, slash::SlashCommand};
-use std::sync::{LazyLock};
+pub mod shared;
+use util::{message::MessageBasedCommand, slash::{SlashCommand}};
+use std::sync::LazyLock;
 mod message;
 mod slash;
-
 
 pub static MESSAGE_BASED_COMMANDS: LazyLock<MbcType> = LazyLock::new(|| 
     vec![
@@ -12,9 +12,10 @@ pub static MESSAGE_BASED_COMMANDS: LazyLock<MbcType> = LazyLock::new(||
 );
 pub static SLASH_COMMANDS: LazyLock<ScType> = LazyLock::new(|| 
     vec![
-        register_sc(slash::Hello {}),
-        register_sc(slash::UselessFacts {}),
-        register_sc(slash::Ask {})
+        register_sc(slash::useless_facts::UselessFacts {}),
+        register_sc(slash::hello::Hello {}),
+        register_sc(slash::ask::Ask {}),
+        register_sc(slash::dicebear::Dicebear {})
     ]
 );
 
