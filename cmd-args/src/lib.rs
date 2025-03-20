@@ -121,6 +121,7 @@ pub fn derive_enum_args(input: TokenStream) -> TokenStream {
 
     // Extract the enum variants
     let enum_name = &input.ident;
+    let enum_name_string = enum_name.to_string();
     let variants = match &input.data {
         Data::Enum(data) => &data.variants,
         _ => panic!("EnumArgs can only be derived for enums"),
@@ -129,6 +130,7 @@ pub fn derive_enum_args(input: TokenStream) -> TokenStream {
     // Process each variant to extract attributes and type information
     let mut variant_extractors = Vec::new();
     let mut to_string_extractors = Vec::new();
+    let mut to_vec_strings = Vec::new();
     let mut first_variant_name: Option<&Ident> = None;
     for variant in variants {
         let variant_name = &variant.ident;
@@ -158,9 +160,13 @@ pub fn derive_enum_args(input: TokenStream) -> TokenStream {
                 return String::from(#alias);
             },
         };
+        let to_vec_extractor = quote! {
+            String::from(#alias),
+        };
 
         variant_extractors.push(extractor);
         to_string_extractors.push(to_string_extractor);
+        to_vec_strings.push(to_vec_extractor);
     }
     let first_variant_name_res = first_variant_name.unwrap();
     // Generate the implementation
@@ -175,13 +181,13 @@ pub fn derive_enum_args(input: TokenStream) -> TokenStream {
                     if let serenity::all::ResolvedValue::String(value) = &option.value {
                         match *value {
                             #(#variant_extractors)*
-                            _ => Err(cmd_args_ext::CommandError::Argument(option.name.to_string(), "Invalid value".to_string())),
+                            _ => Err(cmd_args_ext::CommandError::Argument(option.name.to_string(), format!("Invalid value for enum {} (run `/enum name:{}` for more info)", #enum_name_string, #enum_name_string))),
                         }
                     } else {
-                        Err(cmd_args_ext::CommandError::Argument(option.name.to_string(), "Expected string value".to_string()))
+                        Err(cmd_args_ext::CommandError::Argument(option.name.to_string(), format!("Expected enum of {} (run `/enum name:{}` for more info)", #enum_name_string, #enum_name_string)))
                     }
                 } else {
-                    Err(cmd_args_ext::CommandError::Default("Expected string value".to_string()))
+                    Err(cmd_args_ext::CommandError::Default(format!("Expected enum of {} (run `/enum name:{}` for more info)", #enum_name_string, #enum_name_string)))
                 }
             }
         }
@@ -191,6 +197,9 @@ pub fn derive_enum_args(input: TokenStream) -> TokenStream {
             }
         }
         impl cmd_args_ext::EnumArgsExt for #enum_name {
+            fn enum_name() -> String {
+                String::from(#enum_name_string)
+            }
             fn to_alias(&self) -> String {
                 match self {
                     #(#to_string_extractors)*
@@ -198,6 +207,11 @@ pub fn derive_enum_args(input: TokenStream) -> TokenStream {
                         return String::from("Unknown");
                     },
                 }
+            }
+            fn to_vec() -> Vec<String> {
+                vec![
+                    #(#to_vec_strings)*
+                ]
             }
         }
     };

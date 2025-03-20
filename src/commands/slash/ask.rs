@@ -3,7 +3,7 @@ use cmd_args_ext::{self, CreateCommandExt};
 use serenity::all::{Context, CreateCommand, Interaction};
 use serenity::async_trait;
 
-use super::super::util::{CommandError, slash::{CirmResult, ScCommon}};
+use super::super::util::{slash::{CirmResult, ScCommon}};
 
 use super::super::SlashCommand;
 #[derive(Default, CommandArgs)]
@@ -16,9 +16,9 @@ pub struct Ask {}
 #[async_trait]
 impl <'a> SlashCommand for Ask {
     async fn run(&self, _ctx: &Context, _interaction: &Interaction, common: &ScCommon) -> CirmResult {
-        let opt_raw = &common.parse_option::<Args>();
-        if opt_raw.is_err() {
-            return common.reply("Hi!");
+        let opt_raw = common.parse_option::<Args>();
+        if let Err(err)=opt_raw {
+            return Some(Err(err))
         }
         let prompt = &opt_raw.as_ref().unwrap().prompt;
         let raw = common.http_client.get(format!("https://text.pollinations.ai/{prompt}")).send().await;

@@ -1,10 +1,12 @@
 use std::sync::Arc;
 
 use cmd_args::CommandArgs;
-use serenity::all::{async_trait, CommandInteraction, Context, CreateAttachment, CreateCommand, CreateEmbed, CreateInteractionResponseMessage, Http, Interaction};
+use serenity::all::{async_trait, CommandInteraction, Context, CreateAttachment, CreateCommand, CreateEmbed, CreateInteractionResponseMessage, Http, Interaction, PartialMember};
 use reqwest;
 use cmd_args_ext::{CommandArgsExt, CommandError}; // Assuming CommandArgsExt is in this module
+pub use cmd_args_ext::UserOrMember;
 
+use super::common::EmbedFromSettings;
 pub type CirmResult = Option<Result<CreateInteractionResponseMessage, CommandError>>;
 // Trait for slash commands with CommandArgs
 #[async_trait]
@@ -21,7 +23,7 @@ pub struct ScCommon {
 
 impl ScCommon {
     pub fn reply(&self, value: impl Into<String>) -> CirmResult {
-        Some(Ok(CreateInteractionResponseMessage::new().content(value)))
+        Some(Ok(CreateInteractionResponseMessage::new().embed(CreateEmbed::new_from_settings().description(value))))
     }
     pub fn reply_file(&self, value: CreateAttachment) -> CirmResult {
         Some(Ok(CreateInteractionResponseMessage::new().add_file(value)))

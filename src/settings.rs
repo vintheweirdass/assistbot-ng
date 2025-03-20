@@ -1,7 +1,7 @@
 
 use std::sync::LazyLock;
 
-use serenity::all::{ActivityData, Color, GatewayIntents, OnlineStatus};
+use serenity::all::{ActivityData, Color, CreateEmbedAuthor, GatewayIntents, OnlineStatus};
 
 // your bot permission. it woould be dynamically managed under this variable
 // btw, you need to add GUILD_MESSAGES if you enable message based commands
@@ -24,4 +24,7 @@ pub const ACCENT_COLOR:Color = Color::ORANGE;
 pub const SET_ONLINE_STATUS_WHEN_CONNECTED:OnlineStatus = OnlineStatus::Online;
 pub static SET_ACTIVITY_DATA_WHEN_CONNECTED:LazyLock<ActivityData> = LazyLock::new(
     ||ActivityData::playing("with yo mama")
+);
+pub static SET_EMBED_AUTHOR:LazyLock<CreateEmbedAuthor> = LazyLock::new(
+    ||CreateEmbedAuthor::new("Assistbot").url("https://github.com/vintheweirdass/assistbot-ng")
 );

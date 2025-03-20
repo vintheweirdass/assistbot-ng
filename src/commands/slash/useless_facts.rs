@@ -1,5 +1,4 @@
 use super::super::util::CommandError;
-use cmd_args_ext::CreateCommandExt;
 use serde::{Deserialize, Serialize};
 use serenity::all::{
     Context, CreateCommand, Interaction

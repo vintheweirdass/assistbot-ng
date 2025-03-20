@@ -32,5 +32,5 @@ pub enum StyleVariations {
     #[alias("pixel-art-neutral")] PixelArtNeutral,
     #[alias("rings")] Rings,
     #[alias("shapes")] Shapes,
-    #[alias("thunbs")] Thumbs,
+    #[alias("thumbs")] Thumbs,
 }

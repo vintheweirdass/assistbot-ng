@@ -1,14 +1,20 @@
 // cmd-args-ext
 
-use serenity::all::{CommandInteraction, CommandOptionType, CreateCommand, ResolvedOption, ResolvedValue};
+use serenity::all::{Attachment, CommandInteraction, CommandOptionType, 
+    CreateCommand, PartialChannel, PartialMember, ResolvedOption, 
+    ResolvedValue, Role, User as SerenityUser};
+
 
 #[derive(Debug)]
 pub enum CommandError {
     Default(String),
     Argument(String, String),
 }
-pub trait EnumArgsExt: Default {
+pub trait EnumArgsExt: Default + Sized + Sync {
+    fn enum_name()->String;
     fn to_alias(&self)->String;
+    fn to_vec()->Vec<String>;
+
 }
 pub trait CommandArgsExt: Default {
     fn add_to_command(command: CreateCommand) -> CreateCommand;
@@ -59,22 +65,21 @@ impl CommandOptionTypeExt for f64 {
 
 impl CommandOptionTypeExt for u64 {
     fn get_option_type() -> CommandOptionType {
-        CommandOptionType::Number
+        CommandOptionType::Integer
     }
 
     fn from_option(option: Option<&ResolvedOption>) -> Result<Self, CommandError> {
         if let Some(option) = option {
-            if let ResolvedValue::Number(value) = &option.value {
-                let rounded_value = value.round();
-            
-                if rounded_value < 0.0 {
+            if let ResolvedValue::Integer(v) = &option.value {
+                let value = *v;
+                if value < 0 {
                     return Err(CommandError::Argument(option.name.to_string(), "Expected non-negative interger value".to_string()));
                 }
             
-                if rounded_value > u64::MAX as f64 {
+                if value > u64::MAX as i64 {
                     return Err(CommandError::Argument(option.name.to_string(), "The number is too large".to_string()))
                 }
-                return Ok(rounded_value as u64);
+                return Ok(value as u64);
             } else {
                 Err(CommandError::Argument(option.name.to_string(), "Expected non-negative interger value".to_string()))
             }
@@ -83,25 +88,25 @@ impl CommandOptionTypeExt for u64 {
         }
     }
 }
+
 
 impl CommandOptionTypeExt for u32 {
     fn get_option_type() -> CommandOptionType {
-        CommandOptionType::Number
+        CommandOptionType::Integer
     }
 
     fn from_option(option: Option<&ResolvedOption>) -> Result<Self, CommandError> {
         if let Some(option) = option {
-            if let ResolvedValue::Number(value) = &option.value {
-                let rounded_value = value.round();
-            
-                if rounded_value < 0.0 {
+            if let ResolvedValue::Integer(v) = &option.value {
+                let value = *v;
+                if value < 0 {
                     return Err(CommandError::Argument(option.name.to_string(), "Expected non-negative interger value".to_string()));
                 }
             
-                if rounded_value > u32::MAX as f64 {
+                if value > u32::MAX as i64 {
                     return Err(CommandError::Argument(option.name.to_string(), "The number is too large".to_string()))
                 }
-                return Ok(rounded_value as u32);
+                return Ok(value as u32);
             } else {
                 Err(CommandError::Argument(option.name.to_string(), "Expected non-negative interger value".to_string()))
             }
@@ -111,25 +116,15 @@ impl CommandOptionTypeExt for u32 {
     }
 }
 
-
 impl CommandOptionTypeExt for i64 {
     fn get_option_type() -> CommandOptionType {
-        CommandOptionType::Number
+        CommandOptionType::Integer
     }
 
     fn from_option(option: Option<&ResolvedOption>) -> Result<Self, CommandError> {
         if let Some(option) = option {
-            if let ResolvedValue::Number(value) = &option.value {
-                let rounded_value = value.round();
-            
-                if rounded_value < i64::MIN as f64 {
-                    return Err(CommandError::Argument(option.name.to_string(), "The number is too small".to_string()));
-                }
-            
-                if rounded_value > i64::MAX as f64 {
-                    return Err(CommandError::Argument(option.name.to_string(), "The number is too large".to_string()))
-                }
-                return Ok(rounded_value as i64);
+            if let ResolvedValue::Integer(v) = &option.value {
+                return Ok(*v);
             } else {
                 Err(CommandError::Argument(option.name.to_string(), "Expected interger value".to_string()))
             }
@@ -142,22 +137,21 @@ impl CommandOptionTypeExt for i64 {
 
 impl CommandOptionTypeExt for i32 {
     fn get_option_type() -> CommandOptionType {
-        CommandOptionType::Number
+        CommandOptionType::Integer
     }
 
     fn from_option(option: Option<&ResolvedOption>) -> Result<Self, CommandError> {
         if let Some(option) = option {
-            if let ResolvedValue::Number(value) = &option.value {
-                let rounded_value = value.round();
-            
-                if rounded_value < i32::MIN as f64 {
+            if let ResolvedValue::Integer(v) = &option.value {
+                let value = *v;
+                if value < i32::MIN as i64 {
                     return Err(CommandError::Argument(option.name.to_string(), "The number is too small".to_string()));
                 }
             
-                if rounded_value > i32::MAX as f64 {
+                if value > i32::MAX as i64 {
                     return Err(CommandError::Argument(option.name.to_string(), "The number is too large".to_string()))
                 }
-                return Ok(rounded_value as i32);
+                return Ok(value as i32);
             } else {
                 Err(CommandError::Argument(option.name.to_string(), "Expected interger value".to_string()))
             }
@@ -213,7 +207,6 @@ impl CommandOptionTypeExt for bool {
         }
     }
 }
-
 impl<T> CommandOptionTypeExt for Option<T> where T: CommandOptionTypeExt {
     fn get_option_type() -> CommandOptionType {
         T::get_option_type()
@@ -234,19 +227,101 @@ impl<T> CommandOptionTypeExt for Option<T> where T: CommandOptionTypeExt {
 }
 
 
-// impl<T> CommandOptionTypeExt for Option<T> where T: CommandOptionTypeExt {
-//     fn get_option_type() -> CommandOptionType {
-//         CommandOptionType::
-//     }
+impl CommandOptionTypeExt for Attachment {
+    fn get_option_type() -> CommandOptionType {
+        CommandOptionType::Attachment
+    }
 
-//     fn from_option(&self, option: Option<&ResolvedOption>) -> Result<Self, CommandError> {
-//         if let Some(_) = option {
-//             return Ok(_);
-//         } else {
-            
-//         }
-//     }
-// }
+    fn from_option(option: Option<&ResolvedOption>) -> Result<Self, CommandError> {
+        if let Some(option) = option {
+            if let ResolvedValue::Attachment(value) = option.value {
+                Ok(value.clone()) // i cant deref it
+            } else {
+                Err(CommandError::Argument(option.name.to_string(), "Expected attachment".to_string()))
+            }
+        } else {
+            Err(CommandError::Default("Expected attachment".to_string()))
+        }
+    }
+}
+
+impl CommandOptionTypeExt for Role {
+    fn get_option_type() -> CommandOptionType {
+        CommandOptionType::Role
+    }
+
+    fn from_option(option: Option<&ResolvedOption>) -> Result<Self, CommandError> {
+        if let Some(option) = option {
+            if let ResolvedValue::Role(value) = option.value {
+                Ok(value.clone()) // i cant deref it
+            } else {
+                Err(CommandError::Argument(option.name.to_string(), "Expected role".to_string()))
+            }
+        } else {
+            Err(CommandError::Default("Expected role".to_string()))
+        }
+    }
+}
+
+pub struct UserOrMember {
+    user:SerenityUser,
+    partial_member:Option<PartialMember>,
+}
+
+impl CommandOptionTypeExt for UserOrMember {
+    fn get_option_type() -> CommandOptionType {
+        CommandOptionType::User
+    }
+     //btw hi
+    fn from_option(option: Option<&ResolvedOption>) -> Result<Self, CommandError> {
+        if let Some(option) = option {
+            if let ResolvedValue::User(user, partial_member_raw) = option.value {
+                let partial_member: Option<PartialMember> = if let Some(member) = partial_member_raw {
+                    Some(member.clone())
+                } else {
+                    None
+                };
+                Ok(UserOrMember {
+                   user:user.clone(), partial_member
+                })
+            } else {
+                Err(CommandError::Argument(option.name.to_string(), "Expected user".to_string()))
+            }
+        } else {
+            Err(CommandError::Default("Expected user".to_string()))
+        }
+    }
+}
+
+
+impl CommandOptionTypeExt for PartialChannel {
+    fn get_option_type() -> CommandOptionType {
+        CommandOptionType::Channel
+    }
+
+    fn from_option(option: Option<&ResolvedOption>) -> Result<Self, CommandError> {
+        if let Some(option) = option {
+            if let ResolvedValue::Channel(value) = option.value {
+                Ok(value.clone()) // i cant deref it
+            } else {
+                Err(CommandError::Argument(option.name.to_string(), "Expected any mentionable".to_string()))
+            }
+        } else {
+            Err(CommandError::Default("Expected any mentionable".to_string()))
+        }
+    }
+}
+
+impl CommandOptionTypeExt for SerenityUser {
+    fn get_option_type() -> CommandOptionType {
+        panic!("You're using the wrong type! Use `util::slash::UserOrMember` if you want to get user")
+    }
+
+    fn from_option(_: Option<&ResolvedOption>) -> Result<Self, CommandError> {
+        panic!("You're using the wrong type! Use `util::slash::UserOrMember` if you want to get user")
+    }
+}
+
 
 pub trait CreateCommandExt {
     fn add_args<T: CommandArgsExt>(self) -> CreateCommand;

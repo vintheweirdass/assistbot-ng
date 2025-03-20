@@ -1,13 +1,14 @@
 mod commands;
 mod settings;
 use cmd_args_ext::CommandArgsExt;
+use commands::util::common::EmbedFromSettings;
 use commands::util::slash::CirmResult;
 use commands::util::CommandError;
 use commands::util::{Common, slash::ScCommon, slash::SlashCommand};
 use commands::MESSAGE_BASED_COMMANDS;
 use commands::SLASH_COMMANDS;
 use std::sync::Arc;
-use serenity::all::{ActivityData, Command, CreateInteractionResponse, CreateInteractionResponseMessage, Interaction, OnlineStatus};
+use serenity::all::{ActivityData, Command, CreateEmbed, CreateEmbedFooter, CreateInteractionResponse, CreateInteractionResponseMessage, Interaction, OnlineStatus};
 use serenity::async_trait;
 use serenity::model::{channel::Message, gateway::Ready};
 use serenity::prelude::*;
@@ -40,13 +41,17 @@ impl <'a> EventHandler for Bot <'static> {
 
 
             if let Some(Err(err)) = msg {
-                let data = CreateInteractionResponseMessage::new().content(
-                    // the help command is still wip
-                    // if err == CommandError::Argument {
-                    //     return format!("Error: {:?}\n\n-# see help using", )
-                    // }
-                    format!("Error:\n\n{:?}", err)
-                );
+                let mut embed = CreateEmbed::new_from_settings().title("Error");
+                match err {
+                    CommandError::Default(v)=>{
+                        embed = embed.description(v)
+                    },
+                    CommandError::Argument(name, msg)=>{
+                        embed = embed.description(msg)
+                       .footer(CreateEmbedFooter::new(format!("Caused by argument '{name}'")))
+                    },
+                };
+                let data = CreateInteractionResponseMessage::new().embed(embed.clone());
                 let builder = CreateInteractionResponse::Message(data);
                 if let Err(why) = command.create_response(&ctx.http, builder).await {
                     info!("Cannot respond to slash command: {why}");

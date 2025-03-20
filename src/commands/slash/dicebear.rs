@@ -1,24 +1,20 @@
 use super::super::shared::dicebear::StyleVariations; 
+use super::super::util::common::EmbedFromSettings;
 use cmd_args::{CommandArgs};
-use cmd_args_ext::{CommandError, CommandOptionTypeExt, CreateCommandExt, EnumArgsExt};
-use serenity::all::{CommandOptionType, Context, CreateAttachment, CreateCommand, CreateEmbed, CreateInteractionResponseMessage, Interaction};
+use cmd_args_ext::{CreateCommandExt, EnumArgsExt};
+use serenity::all::{Context, CreateCommand, CreateCommandOption, CreateEmbed, Interaction};
 use serenity::async_trait;
-use dicebear::generate as dicebear_generate;
+// currenly experimenting on non crate, im not rlly interested well if
+// theres too many concurrent commands that running this
+use dicebear::{generate_url as dicebear_generate_url};
 use tracing::info;
 
 use super::super::{util::slash::{ScCommon, SlashCommand, CirmResult}};
 
-// CreateCommand::new("attachmentinput")
-// .description("Test command for attachment input")
-// .add_option(
-//     CreateCommandOption::new(CommandOptionType::Attachment, "attachment", "A file")
-//         .required(true),
-// )
-
 #[derive(Default, CommandArgs)]
 struct Args {
     #[description("The name")]
-    style: StyleVariations,
+    style:StyleVariations,
     #[description("Seed")]
     seed:Option<String>,
     #[description("Flip the image?")]
@@ -42,7 +38,8 @@ impl SlashCommand for Dicebear {
            String::from("256")
         };
         info!("{}", style.to_alias());
-        let gen = dicebear_generate(
+        let gen = dicebear_generate_url(
+            "png".to_string(),
             style.to_alias(),
             opt.seed.clone(), // OPTIONAL: Seed
             size, // REQUIRED: Size
@@ -50,12 +47,11 @@ impl SlashCommand for Dicebear {
             None
             ).await;
         if let Ok(img) = gen {
-                let image_res = CreateAttachment::bytes(img.as_bytes(), "result.png");
-                let embed = CreateEmbed::new()
+                let embed = CreateEmbed::new_from_settings()
                     .title("Local Image")
-                    .image("attachment://result.png");
+                    .image(img);
 
-            return common.reply_cirm( CreateInteractionResponseMessage::new().add_embed(embed).add_file(image_res));
+            return common.reply_embed(embed);
         } else {
             return common.error("Failed to generate image")
         }
