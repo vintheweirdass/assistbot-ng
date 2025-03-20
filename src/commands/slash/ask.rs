@@ -20,7 +20,7 @@ impl <'a> SlashCommand for Ask {
         if let Err(err)=opt_raw {
             return Some(Err(err))
         }
-        let prompt = &opt_raw.as_ref().unwrap().prompt;
+        let prompt = &opt_raw.unwrap().prompt;
         let raw = common.http_client.get(format!("https://text.pollinations.ai/{prompt}")).send().await;
             if let Err(err) = raw {
                 return common.error(format!("Failed to fetch: {err}"))
