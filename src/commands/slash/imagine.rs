@@ -28,7 +28,7 @@ impl <'a> SlashCommand for Imagine {
     }
     
     fn register(&self) -> CreateCommand {
-        CreateCommand::new("ask")
+        CreateCommand::new("imagine")
         .add_args::<Args>()
         .description("generate image from image.pollination.ai")
     }
