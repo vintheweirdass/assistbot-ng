@@ -12,8 +12,8 @@ serde_json = "1.0.140"
 serenity = "0.12.4"
 shuttle-runtime = "0.53.0"
 shuttle-serenity = "0.53.0"
-cmd-args = {path = "cmd-args"}
-cmd-args-ext = {path = "cmd-args-ext"}
+cmd-args = {path = "./cmd-args"}
+cmd-args-ext = {path = "./cmd-args-ext"}
 tracing = "0.1.41"
 url-builder = "0.1.1"
 urlencoding = "2.1.3"
