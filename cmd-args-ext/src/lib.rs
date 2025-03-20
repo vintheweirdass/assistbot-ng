@@ -264,8 +264,8 @@ impl CommandOptionTypeExt for Role {
 }
 
 pub struct UserOrMember {
-    user:SerenityUser,
-    partial_member:Option<PartialMember>,
+    pub user:SerenityUser,
+    pub partial_member:Option<PartialMember>,
 }
 
 impl CommandOptionTypeExt for UserOrMember {
