@@ -22,7 +22,7 @@ impl SlashCommand for EnumList {
         if let Err(e) = opt_raw {
             return Some(Err(e))
         }
-        let selected = opt_raw.unwrap().name;
+        let selected = opt_raw.unwrap().name.to_lowercase();
         let enums = &*ENUMS;
         for (name, vs) in enums {
             let to_low = &name.to_lowercase();
