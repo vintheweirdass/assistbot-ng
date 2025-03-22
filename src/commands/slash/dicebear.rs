@@ -2,12 +2,11 @@ use super::super::shared::dicebear::StyleVariations;
 use super::super::util::common::EmbedFromSettings;
 use cmd_args::{CommandArgs};
 use cmd_args_ext::{CreateCommandExt, EnumArgsExt};
-use serenity::all::{Context, CreateCommand, CreateCommandOption, CreateEmbed, Interaction};
+use serenity::all::{Context, CreateCommand, CreateEmbed, Interaction};
 use serenity::async_trait;
 // currenly experimenting on non crate, im not rlly interested well if
 // theres too many concurrent commands that running this
 use dicebear::{generate_url as dicebear_generate_url};
-use tracing::info;
 
 use super::super::{util::slash::{ScCommon, SlashCommand, CirmResult}};
 
@@ -37,7 +36,6 @@ impl SlashCommand for Dicebear {
         } else {
            String::from("256")
         };
-        info!("{}", style.to_alias());
         let gen = dicebear_generate_url(
             "png".to_string(),
             style.to_alias(),
@@ -48,7 +46,6 @@ impl SlashCommand for Dicebear {
             ).await;
         if let Ok(img) = gen {
                 let embed = CreateEmbed::new_from_settings()
-                    .title("Local Image")
                     .image(img);
 
             return common.reply_embed(embed);

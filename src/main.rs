@@ -1,6 +1,5 @@
 mod commands;
 mod settings;
-use cmd_args_ext::CommandArgsExt;
 use commands::util::common::EmbedFromSettings;
 use commands::util::slash::CirmResult;
 use commands::util::CommandError;
@@ -8,7 +7,7 @@ use commands::util::{Common, slash::ScCommon, slash::SlashCommand};
 use commands::MESSAGE_BASED_COMMANDS;
 use commands::SLASH_COMMANDS;
 use std::sync::Arc;
-use serenity::all::{ActivityData, Command, CreateEmbed, CreateEmbedFooter, CreateInteractionResponse, CreateInteractionResponseMessage, Interaction, OnlineStatus};
+use serenity::all::{Command, CreateEmbed, CreateEmbedFooter, CreateInteractionResponse, CreateInteractionResponseMessage, Interaction};
 use serenity::async_trait;
 use serenity::model::{channel::Message, gateway::Ready};
 use serenity::prelude::*;
@@ -41,25 +40,24 @@ impl <'a> EventHandler for Bot <'static> {
 
 
             if let Some(Err(err)) = msg {
-                let mut embed = CreateEmbed::new_from_settings().title("Error");
-                match err {
+                let embed: CreateEmbed = match err {
                     CommandError::Default(v)=>{
-                        embed = embed.description(v)
+                        CreateEmbed::new_from_settings().title("Error").description(v)
                     },
                     CommandError::Argument(name, msg)=>{
-                        embed = embed.description(msg)
-                       .footer(CreateEmbedFooter::new(format!("Caused by argument '{name}'")))
+                        CreateEmbed::new_from_settings().title("Error").description(msg)
+                        .footer(CreateEmbedFooter::new(format!("Caused by argument '{name}'")))
                     },
                 };
-                let data = CreateInteractionResponseMessage::new().embed(embed.clone());
+                let data = CreateInteractionResponseMessage::new().embed(embed);
                 let builder = CreateInteractionResponse::Message(data);
                 if let Err(why) = command.create_response(&ctx.http, builder).await {
-                    info!("Cannot respond to slash command: {why}");
+                    warn!("Cannot respond to slash command: {why}");
                 }
             } else if let Some(Ok(content)) = msg {
                 let builder = CreateInteractionResponse::Message(content);
                 if let Err(why) = command.create_response(&ctx.http, builder).await {
-                    info!("Cannot respond to slash command: {why}");
+                    warn!("Cannot respond to slash command: {why}");
                 }
             }
         }

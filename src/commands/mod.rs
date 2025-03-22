@@ -22,7 +22,8 @@ pub static SLASH_COMMANDS: LazyLock<ScType> = LazyLock::new(||
         register_sc(slash::hello::Hello {}),
         register_sc(slash::ask::Ask {}),
         register_sc(slash::dicebear::Dicebear {}),
-        register_sc(slash::imagine::Imagine {})
+        register_sc(slash::imagine::Imagine {}),
+        register_sc(slash::thanks::Thanks {})
     ]
 );
 

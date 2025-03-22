@@ -2,7 +2,6 @@ use cmd_args::CommandArgs;
 use cmd_args_ext::CreateCommandExt;
 use serenity::all::{Context, CreateCommand, CreateEmbed, Interaction};
 use serenity::async_trait;
-use std::fmt::Write;
 
 
 use super::super::super::commands::ENUMS;
