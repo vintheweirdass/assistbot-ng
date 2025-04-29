@@ -3,7 +3,7 @@ use cmd_args_ext::{self, CreateCommandExt};
 use serenity::all::{Context, CreateCommand, Interaction};
 use serenity::async_trait;
 
-use super::super::util::{slash::{CirmResult, ScCommon}};
+use super::super::util::slash::{ScCommon, CirmResult};
 
 use super::super::SlashCommand;
 #[derive(Default, CommandArgs)]
@@ -16,25 +16,22 @@ pub struct Ask {}
 #[async_trait]
 impl <'a> SlashCommand for Ask {
     async fn run(&self, _ctx: &Context, _interaction: &Interaction, common: &ScCommon) -> CirmResult {
-        let opt_raw = common.parse_option::<Args>();
-        if let Err(err)=opt_raw {
-            return Some(Err(err))
-        }
-        let prompt = &opt_raw.unwrap().prompt;
+        let opt = common.parse_option::<Args>()?;
+        let prompt = opt.prompt;
         let raw = common.http_client.get(format!("https://text.pollinations.ai/{prompt}")).send().await;
             if let Err(err) = raw {
-                return common.error(format!("Failed to fetch: {err}"))
+                return Err(common.error(format!("Failed to fetch: {err}")));
             } 
             let res = raw.unwrap();
             let text_raw = res.text().await;
             if let Err(err) = text_raw {
-                return common.error(format!("Failed to parse result: {err}"))
+                return Err(common.error(format!("Failed to parse result: {err}")));
             }
             let text = text_raw.unwrap();
             if text.len()>=2000 {
-                return common.error("The answer was too large. try asking another question")
+                return Err(common.error("The answer was too large. try asking another question"));
             }
-            return common.reply(text); 
+            return Ok(common.reply(text)); 
     }
     
     fn register(&self) -> CreateCommand {

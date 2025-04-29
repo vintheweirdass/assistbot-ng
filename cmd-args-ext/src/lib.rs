@@ -1,5 +1,7 @@
 // cmd-args-ext
 
+use std::num::{NonZeroU8, TryFromIntError};
+
 use serenity::all::{Attachment, CommandInteraction, CommandOptionType, 
     CreateCommand, PartialChannel, PartialMember, ResolvedOption, 
     ResolvedValue, Role, User as SerenityUser};
@@ -14,12 +16,11 @@ pub trait EnumArgsExt: Default + Sized + Sync {
     fn enum_name()->String;
     fn to_alias(&self)->String;
     fn to_vec()->Vec<String>;
-
 }
-pub trait CommandArgsExt: Default {
+pub trait CommandArgsExt {
     fn add_to_command(command: CreateCommand) -> CreateCommand;
-    fn from_options(options: &[ResolvedOption]) -> Result<Self, CommandError>;
-    fn from_command(command: &CommandInteraction) -> Result<Self, CommandError>;
+    fn from_options(options: &[ResolvedOption]) -> Result<Self, CommandError> where Self: Sized;
+    fn from_command(command: &CommandInteraction) -> Result<Self, CommandError> where Self: Sized;
 }
 
 pub trait CommandOptionTypeExt: Sized {
@@ -89,6 +90,34 @@ impl CommandOptionTypeExt for u64 {
     }
 }
 
+// fuck ai
+impl CommandOptionTypeExt for NonZeroU8 {
+    fn get_option_type() -> CommandOptionType {
+        return CommandOptionType::Integer;
+    }
+    fn from_option(option: Option<&ResolvedOption>) -> Result<Self, CommandError> {
+        if let Some(option) = option {
+            if let ResolvedValue::Integer(v) = &option.value {
+                let value = *v;
+                if value < 0 {
+                    return Err(CommandError::Argument(option.name.to_string(), "Expected non-negative interger value".to_string()));
+                } else if value == 0 {
+                    return Err(CommandError::Argument(option.name.to_string(), "This type of interger needs to be non zero".to_string()))
+                }
+            
+                if value > u8::MAX as i64 {
+                    return Err(CommandError::Argument(option.name.to_string(), "The number is too large".to_string()))
+                }
+                let to_small_value = value as u8;
+                return Ok(NonZeroU8::new(to_small_value).ok_or(CommandError::Argument(option.name.to_string(), "This type of interger needs to be non zero".to_string()))?);
+            } else {
+                Err(CommandError::Argument(option.name.to_string(), "Expected non-negative interger value".to_string()))
+            }
+        } else {
+            Err(CommandError::Default("Expected non-negative interger value".to_string()))
+        }
+    }
+}
 
 impl CommandOptionTypeExt for u32 {
     fn get_option_type() -> CommandOptionType {
@@ -235,7 +264,7 @@ impl CommandOptionTypeExt for Attachment {
     fn from_option(option: Option<&ResolvedOption>) -> Result<Self, CommandError> {
         if let Some(option) = option {
             if let ResolvedValue::Attachment(value) = option.value {
-                Ok(value.clone()) // i cant deref it
+                Ok(value.to_owned()) // i cant deref it
             } else {
                 Err(CommandError::Argument(option.name.to_string(), "Expected attachment".to_string()))
             }
@@ -253,7 +282,7 @@ impl CommandOptionTypeExt for Role {
     fn from_option(option: Option<&ResolvedOption>) -> Result<Self, CommandError> {
         if let Some(option) = option {
             if let ResolvedValue::Role(value) = option.value {
-                Ok(value.clone()) // i cant deref it
+                Ok(value.to_owned()) // i cant deref it
             } else {
                 Err(CommandError::Argument(option.name.to_string(), "Expected role".to_string()))
             }
@@ -277,12 +306,12 @@ impl CommandOptionTypeExt for UserOrMember {
         if let Some(option) = option {
             if let ResolvedValue::User(user, partial_member_raw) = option.value {
                 let partial_member: Option<PartialMember> = if let Some(member) = partial_member_raw {
-                    Some(member.clone())
+                    Some(member.to_owned())
                 } else {
                     None
                 };
                 Ok(UserOrMember {
-                   user:user.clone(), partial_member
+                   user:user.to_owned(), partial_member
                 })
             } else {
                 Err(CommandError::Argument(option.name.to_string(), "Expected user".to_string()))
@@ -302,7 +331,7 @@ impl CommandOptionTypeExt for PartialChannel {
     fn from_option(option: Option<&ResolvedOption>) -> Result<Self, CommandError> {
         if let Some(option) = option {
             if let ResolvedValue::Channel(value) = option.value {
-                Ok(value.clone()) // i cant deref it
+                Ok(value.to_owned()) // i cant deref it
             } else {
                 Err(CommandError::Argument(option.name.to_string(), "Expected any mentionable".to_string()))
             }

@@ -1,12 +1,44 @@
 use proc_macro::TokenStream;
-use quote::quote;
-use syn::{parse_macro_input, Data, DeriveInput, Expr, ExprLit, Fields, Ident, Lit};
+use quote::{quote, ToTokens};
+use syn::{parse_macro_input, Data, DeriveInput, Expr, ExprLit, Fields, Ident, Lit, ItemFn, FnArg, Pat, Type};
 
+#[proc_macro_attribute]
+pub fn permission(attr: TokenStream, item: TokenStream) -> TokenStream {
+    let permission_expr = parse_macro_input!(attr as Expr);
+    let mut function = parse_macro_input!(item as ItemFn);
+    let ctx_ident = function.sig.inputs.iter().find_map(|arg| {
+        if let FnArg::Typed(pat) = arg {
+            if let Pat::Ident(ident) = &*pat.pat {
+                // Check if the type is `&Context`
+                if let Type::Reference(tyref) = &*pat.ty {
+                    if let Type::Path(path) = &*tyref.elem {
+                        if path.path.segments.last().unwrap().ident == "Context" {
+                            return Some(ident.ident.clone());
+                        }
+                    }
+                }
+            }
+        }
+        None
+    }).expect("Expected &Context parameter"); 
+    let injected = quote! {
+        if !#ctx_ident.has_permissions(#permission_expr) {
+            return common.reply("You don't have permission!");
+        }
+    };
+
+    let original_block = &function.block;
+    function.block = syn::parse_quote!({
+        #injected
+        #original_block
+    });
+
+    TokenStream::from(quote!(#function))
+}
 #[proc_macro_derive(CommandArgs, attributes(description, required))]
 pub fn derive_command_args(input: TokenStream) -> TokenStream {
     let input = parse_macro_input!(input as DeriveInput);
 
-    // Extract the struct fields
     let struct_name = &input.ident;
     let fields = match &input.data {
         Data::Struct(data) => match &data.fields {
@@ -16,46 +48,44 @@ pub fn derive_command_args(input: TokenStream) -> TokenStream {
         _ => panic!("CommandArgs can only be derived for structs"),
     };
 
-    // Process each field to extract attributes and type information
     let mut field_processors = Vec::new();
-    let mut field_extractors = Vec::new();
+    let mut field_extractor_match_arms = Vec::new();
+    let mut field_bindings = Vec::new();
+    let mut field_locals = Vec::new();
 
     for field in fields {
         let field_name = field.ident.as_ref().unwrap();
         let field_type = &field.ty;
+        let field_str = field_name.to_string();
+        let field_type_str = &field_type.into_token_stream().to_string();
 
-        let is_required = if let syn::Type::Path(type_path) = field_type {
+        let is_option = if let syn::Type::Path(type_path) = field_type {
             if let Some(segment) = type_path.path.segments.first() {
-                if segment.ident == "Option" {
-                    false
-                } else {
-                    true
-                }
+                segment.ident == "Option"
             } else {
-                true
+                false
             }
         } else {
-            true
+            false
         };
-
-        // Extract description from attributes
+        let is_required = !is_option;
         let mut description = String::from("No description provided");
-        
         for attr in &field.attrs {
             if attr.path().is_ident("description") {
-                    if let Expr::Lit(ExprLit {
-                        lit: Lit::Str(lit_str),
-                        ..
-                    }) = attr.parse_args::<Expr>().unwrap()
-                    {
-                        description = lit_str.value();
-                    }
+                if let Ok(Expr::Lit(ExprLit { lit: Lit::Str(lit_str), .. })) = attr.parse_args::<Expr>() {
+                    description = lit_str.value();
+                }
             }
         }
+        description = format!("({}) {}", field_type_str, description);
+        if is_option {
+            description = format!("{}{}", if is_option {
+                "(Optional) "
+            } else {
+                ""
+            }, description);
+        }
 
-        let field_str = field_name.to_string();
-
-        // Generate code to process this field for command creation
         let processor = quote! {
             options.push(
                 serenity::all::CreateCommandOption::new(
@@ -67,23 +97,43 @@ pub fn derive_command_args(input: TokenStream) -> TokenStream {
             );
         };
 
-        // Generate code to extract this field from options
-        let extractor = quote! {
+        let local_var = syn::Ident::new(&format!("__{}_arg", field_name), field_name.span());
+
+        let local_declaration = quote! {
+            let mut #local_var = None;
+        };
+
+        let extractor_arm = quote! {
             #field_str => {
-                args.#field_name = <#field_type as cmd_args_ext::CommandOptionTypeExt>::from_option(Some(option))?;
+                #local_var = Some(<#field_type as cmd_args_ext::CommandOptionTypeExt>::from_option(Some(option)));
+            }
+        };
+
+        // Handle the Result properly in the binding
+        let binding = if is_required {
+            quote! {
+                #field_name: #local_var.ok_or_else(|| cmd_args_ext::CommandError::Argument(
+                    String::from(#field_str),
+                    "Missing field".to_string()
+                ))??
+            }
+        } else {
+            // For Option<T>, flatten the nested Option
+            quote! {
+                #field_name: #local_var.transpose()?.flatten()
             }
         };
 
         field_processors.push(processor);
-        field_extractors.push(extractor);
+        field_locals.push(local_declaration);
+        field_extractor_match_arms.push(extractor_arm);
+        field_bindings.push(binding);
     }
 
-    // Generate the implementation
     let output = quote! {
         impl cmd_args_ext::CommandArgsExt for #struct_name {
             fn add_to_command(command: serenity::all::CreateCommand) -> serenity::all::CreateCommand {
                 let mut options = Vec::new();
-
                 #(#field_processors)*
 
                 let mut cmd = command;
@@ -94,17 +144,18 @@ pub fn derive_command_args(input: TokenStream) -> TokenStream {
             }
 
             fn from_options(options: &[serenity::all::ResolvedOption]) -> Result<Self, cmd_args_ext::CommandError> {
-                let mut args = Self::default();
+                #(#field_locals)*
 
-                // Process each option
                 for option in options {
                     match option.name {
-                        #(#field_extractors)*
+                        #(#field_extractor_match_arms)*
                         _ => {}
                     }
                 }
 
-                Ok(args)
+                Ok(Self {
+                    #(#field_bindings),*
+                })
             }
 
             fn from_command(command: &serenity::all::CommandInteraction) -> Result<Self, cmd_args_ext::CommandError> {

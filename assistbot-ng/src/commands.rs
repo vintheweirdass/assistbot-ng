@@ -9,7 +9,7 @@ mod slash;
 
 pub static MESSAGE_BASED_COMMANDS: LazyLock<MbcType> = LazyLock::new(|| 
     vec![
-        register_mbc(message::Run {})
+        // register_mbc(message::Run {})
     ]
 );
 
@@ -23,7 +23,9 @@ pub static SLASH_COMMANDS: LazyLock<ScType> = LazyLock::new(||
         register_sc(slash::ask::Ask {}),
         register_sc(slash::dicebear::Dicebear {}),
         register_sc(slash::imagine::Imagine {}),
-        register_sc(slash::thanks::Thanks {})
+        register_sc(slash::thanks::Thanks {}),
+        register_sc(slash::delete_me::DeleteMe {}),
+        register_sc(slash::dice::Dice {})
     ]
 );
 

@@ -3,7 +3,7 @@ use cmd_args_ext::CreateCommandExt;
 use serenity::all::{Context, CreateCommand, Interaction};
 use serenity::async_trait;
 
-use super::super::{util::slash::{ScCommon, SlashCommand, CirmResult}};
+use super::super::{util::{slash::{ScCommon, SlashCommand, CirmResult}}};
 
 // CreateCommand::new("attachmentinput")
 // .description("Test command for attachment input")
@@ -11,7 +11,7 @@ use super::super::{util::slash::{ScCommon, SlashCommand, CirmResult}};
 //     CreateCommandOption::new(CommandOptionType::Attachment, "attachment", "A file")
 //         .required(true),
 // )
-#[derive(Default, CommandArgs)]
+#[derive(CommandArgs)]
 pub struct Args {
     #[description("The name")]
     name: Option<String>
@@ -22,14 +22,14 @@ impl SlashCommand for Hello {
     async fn run(&self, _ctx: &Context, _interaction: &Interaction, common: &ScCommon) -> CirmResult {
         let opt_raw = &common.parse_option::<Args>();
         if opt_raw.is_err() {
-            return common.reply("Hi!");
+            return Ok(common.reply("Hi!"));
         }
         let opt = &opt_raw.as_ref().unwrap();
         let name = &opt.name;
         if name.is_none() {
-            return common.reply("Hi!");
+            return Ok(common.reply("Hi!"));
         }
-        return common.reply(format!("Hi, {}!", name.as_ref().unwrap()));
+        return Ok(common.reply(format!("Hi, {}!", name.as_ref().unwrap())));
     }
     
     fn register(&self) -> CreateCommand {
@@ -38,7 +38,4 @@ impl SlashCommand for Hello {
         .description("You wasted 5 secs to see this")
     }
     
-    fn able_to_register(&self) -> bool {
-        true
-    }
 }

@@ -8,9 +8,9 @@ use serenity::async_trait;
 // theres too many concurrent commands that running this
 use dicebear::{generate_url as dicebear_generate_url};
 
-use super::super::{util::slash::{ScCommon, SlashCommand, CirmResult}};
+use super::super::util::{slash::{ScCommon, SlashCommand, CirmResult}};
 
-#[derive(Default, CommandArgs)]
+#[derive(CommandArgs)]
 struct Args {
     #[description("The name")]
     style:StyleVariations,
@@ -25,11 +25,7 @@ pub struct Dicebear {}
 #[async_trait]
 impl SlashCommand for Dicebear {
     async fn run(&self, _ctx: &Context, _interaction: &Interaction, common: &ScCommon) -> CirmResult {
-        let opt_raw = common.parse_option::<Args>();
-        if let Err(err)=opt_raw {
-            return Some(Err(err))
-        }
-        let opt = opt_raw.as_ref().unwrap();
+        let opt = common.parse_option::<Args>()?;
         let style = &opt.style;
         let size = if let Some(v) = &opt.size {
            v.to_string()
@@ -48,9 +44,9 @@ impl SlashCommand for Dicebear {
                 let embed = CreateEmbed::new_from_settings()
                     .image(img);
 
-            return common.reply_embed(embed);
+            return Ok(common.reply_embed(embed));
         } else {
-            return common.error("Failed to generate image")
+            return Err(common.error("Failed to generate image"));
         }
     }
     
@@ -58,9 +54,5 @@ impl SlashCommand for Dicebear {
         CreateCommand::new("dicebear")
         .add_args::<Args>()
         .description("Generate avatars from dicebear")
-    }
-    
-    fn able_to_register(&self) -> bool {
-        true
     }
 }

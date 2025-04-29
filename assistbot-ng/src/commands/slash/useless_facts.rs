@@ -30,27 +30,23 @@ impl <'a> SlashCommand for UselessFacts {
             .send()
             .await;
         if let Err(err) = raw {
-            return common.error(
+            return Err(common.error(
                 format!("Failed to fetch: {err}"),
-            );
+            ));
         }
         let res = raw.unwrap();
         let text_raw = res.json::<Fact>().await;
         if let Err(err) = text_raw {
-            return Some(Err(CommandError::Default(
+            return Err(CommandError::Default(
                 format!("Failed to parse result: {err}").to_owned(),
-            )));
+            ));
         }
         let fact = text_raw.unwrap();
-        common.reply(fact.text)
+        return Ok(common.reply(fact.text));
     }
 
     fn register(&self) -> CreateCommand {
         CreateCommand::new("useless-facts")
         .description("get some.. weird facts")
-    }
-
-    fn able_to_register(&self) -> bool {
-        true
     }
 }

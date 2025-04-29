@@ -17,11 +17,8 @@ pub struct EnumList {}
 #[async_trait]
 impl SlashCommand for EnumList {
     async fn run(&self, _ctx: &Context, _interaction: &Interaction, common: &ScCommon) -> CirmResult {
-        let opt_raw = common.parse_option::<Args>();
-        if let Err(e) = opt_raw {
-            return Some(Err(e))
-        }
-        let selected = opt_raw.unwrap().name.to_lowercase();
+        let opt = common.parse_option::<Args>()?;
+        let selected = opt.name.to_lowercase();
         let enums = &*ENUMS;
         for (name, vs) in enums {
             let to_low = &name.to_lowercase();
@@ -33,11 +30,11 @@ impl SlashCommand for EnumList {
                 .map(|value| format!("`{}`", value))
                 .collect();
         
-            return common.reply_embed(CreateEmbed::new_from_settings()
+            return Ok(common.reply_embed(CreateEmbed::new_from_settings()
                 .title(format!("Enum variant of `{name}`"))
-                .description(values.join(", ")))
+                .description(values.join(", "))));
         }
-        return common.error("Enum wasnt found");
+        return Err(common.error("Enum wasnt found"));
     }
     
     fn register(&self) -> CreateCommand {
@@ -45,8 +42,5 @@ impl SlashCommand for EnumList {
         .add_args::<Args>()
         .description("Get the dictionary of enum")
     }
-    
-    fn able_to_register(&self) -> bool {
-        true
-    }
+
 }

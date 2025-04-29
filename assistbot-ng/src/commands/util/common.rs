@@ -12,6 +12,6 @@ pub trait EmbedFromSettings {
 }
 impl EmbedFromSettings for CreateEmbed {
     fn new_from_settings() -> Self {
-        CreateEmbed::new().color(settings::ACCENT_COLOR).author(settings::SET_EMBED_AUTHOR.clone())
+        CreateEmbed::new().color(settings::ACCENT_COLOR).author(settings::SET_EMBED_AUTHOR.to_owned())
     }
 }
