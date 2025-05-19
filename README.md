@@ -13,16 +13,12 @@ This features robust features of assistbot
 It's already tested in [Shuttle](https://shuttle.dev), but since I used the free plan, I can't show the demo atm
 
 # Installation
-Go to assistbot folder (nested from root) and run the build command
-
-```shell
-$ cd assistbot
-```
+Go to the root folder and run the build command
 ```shell
 $ cargo build
 ```
 
-To publish to [Shuttle](https://shuttle.dev), you need to install `cargo-shuttle`
+To publish to [Shuttle](https://shuttle.dev), or if you want to run it normally, you need to install `cargo-shuttle` since it was hardcoded with that crate
 
 ```shell
 $ cargo install cargo-shuttle
