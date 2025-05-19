@@ -13,7 +13,7 @@ This features robust features of assistbot
 It's already tested in [Shuttle](https://shuttle.dev), but since I used the free plan, I can't show the demo atm
 
 # Installation
-Go to the root folder and run the build command
+Go to the workspace root folder and run the build command
 ```shell
 $ cargo build
 ```
